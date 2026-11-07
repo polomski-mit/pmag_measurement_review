@@ -159,7 +159,7 @@ element('stage-cancel').onclick();assert.equal(vm.runInContext('reviewStage',con
 element('finish-quality').onclick();await element('stage-apply').onclick();
 assert.equal(vm.runInContext('reviewStage',context),'repeats');
 assert.equal(element('quality-navigation').hidden,true);
-assert.match(element('repeat-status').textContent,/1 repeated/);
+assert.match(element('repeat-status').textContent,/1 of 1 temperature groups/);
 element('repeat-member').value='DEMO-01|2000-01-01T13:00:00';element('repeat-open').onclick();
 assert.equal(element('vector-context').value,'local');assert.equal(element('yes').disabled,true);
 element('repeat-choose').onclick();key('Escape');
