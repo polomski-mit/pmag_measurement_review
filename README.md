@@ -46,6 +46,11 @@ Use the **Dark mode / Light mode** button to change the interface and plot
 palette. The viewer remembers your choice locally and initially follows your
 system preference.
 
+Warnings use red for high CSD or moment ≤0.1% of reference, orange for
+moderate scatter or other low-moment proposals, purple for orientation/identity
+hypotheses, and blue for existing source flags. Each reason has a text label;
+colors describe review priority, not error probability or acceptance status.
+
 ## Input and screening rules
 
 Input is a MagIC 3 `measurements.txt`, starting `tab<TAB>measurements`, with

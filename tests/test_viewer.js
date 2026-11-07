@@ -28,6 +28,7 @@ assert.equal(element('theme').textContent,'Light mode');
 element('demo').onclick();
 assert.equal(element('counter').textContent,'1 / 4');
 assert.equal(element('reasons').children.length,2);
+assert.match(element('case-warning').className,/severity-red/);
 assert.match(element('csd-warning').style.cssText,/#c62828/);
 assert.ok(element('reasons').children.every(li=>li.children[0].textContent&&li.children[1].textContent));
 assert.match(element('reasons').children.map(li=>li.children[1].textContent).join(' '),/14.0°/);
@@ -48,9 +49,11 @@ for(const [choice,status] of [['y','APPROVED'],['n','REJECTED'],['u','PENDING']]
 }
 key('ArrowRight');assert.equal(element('csd-warning').hidden,true);
 assert.match(element('reasons').children[0].children[1].textContent,/Vector length is unchanged/);
+assert.match(element('case-warning').className,/severity-purple/);
 key('ArrowRight');assert.match(element('csd-warning').style.cssText,/#ef8c00/);
 assert.match(element('reasons').children[0].children[1].textContent,/6.0°/);
 assert.equal(element('csd-warning').hidden,false);
+assert.match(element('case-warning').className,/severity-orange/);
 element('note').value='Reviewed synthetic case';element('note').oninput();
 key('ArrowRight');assert.equal(element('partner-card').hidden,false);
 assert.match(element('reasons').children[0].children[1].textContent,/Both must improve/);
@@ -67,5 +70,10 @@ key('ArrowRight');key('ArrowRight');key('ArrowRight');
 key('u');key('Enter');assert.equal(element('counter').textContent,'4 / 4');
 assert.match(element('cache-state').textContent,/End of review list/);
 element('theme').onclick();assert.equal(document.documentElement.dataset.theme,'light');
+for(const [ratio,level] of [[0.001,'red'],[0.00101,'orange'],[0.01,'orange']]){
+ const warning=vm.runInContext(`reviewWarnings({reasons:['low_moment'],evidence:{low_moment:{ratio:${ratio}}}},'exclusion',{})[0]`,context);
+ assert.equal(warning.level,level);
+}
+assert.equal(vm.runInContext("reviewWarnings({reasons:['existing_bad_flag']},'exclusion',{})[0].level",context),'blue');
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
