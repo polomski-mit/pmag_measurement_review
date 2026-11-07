@@ -135,12 +135,20 @@ for(const axis of ['x','y'])for(const full of [true,false]){
 }
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
+(async()=>{
 // Repeat choices require confirmation and update screened plots immediately.
 vm.runInContext(`{
  const bundle=structuredClone(demoPayload),rows=bundle.context['DEMO-01'];
  const repeated={...rows[1],timestamp:'2000-01-01T13:00:00',_review_identity:'DEMO-01|2000-01-01T13:00:00',dir_csd:'1'};rows.push(repeated);
  bundle.bundle_id='repeat-regression';bundle.repeat_groups={'repeat-test':{group_id:'repeat-test',specimen:'DEMO-01',treat_temp:Number(rows[1].treat_temp),signature:'signature-test',identities:[rowIdentity(rows[1]),rowIdentity(repeated)]}};openBundle(bundle);
 }`,context);
+assert.equal(element('repeat-review').hidden,true);
+assert.equal(vm.runInContext('reviewStage',context),'quality');
+element('finish-quality').onclick();assert.equal(element('stage-dialog').open,true);
+element('stage-cancel').onclick();assert.equal(vm.runInContext('reviewStage',context),'quality');
+element('finish-quality').onclick();await element('stage-apply').onclick();
+assert.equal(vm.runInContext('reviewStage',context),'repeats');
+assert.equal(element('quality-navigation').hidden,true);
 assert.match(element('repeat-status').textContent,/1 repeated/);
 element('repeat-member').value='DEMO-01|2000-01-01T13:00:00';element('repeat-open').onclick();
 assert.equal(element('vector-context').value,'local');assert.equal(element('yes').disabled,true);
@@ -176,3 +184,21 @@ console.log('Repeat plots passed: all candidates shown, overlap handling, scaled
 
 buttons[2].onclick();assert.equal(element('confirm-dialog').open,true);key('Escape');
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
+
+// Returning to quality review hides repeat UI; handoff removes approved bad rows.
+element('back-quality').onclick();
+assert.equal(element('repeat-review').hidden,true);
+vm.runInContext(`{
+ const bundle=structuredClone(demoPayload),rows=bundle.context['DEMO-01'];
+ const repeated={...rows[1],timestamp:'2000-01-01T13:00:00',_review_identity:'DEMO-01|2000-01-01T13:00:00'};
+ rows.push(repeated);bundle.bundle_id='quality-first-regression';
+ bundle.repeat_groups={g:{group_id:'g',specimen:'DEMO-01',treat_temp:Number(rows[1].treat_temp),signature:'test',identities:[rowIdentity(rows[1]),rowIdentity(repeated)]}};
+ bundle.ledger.exclusions[rowIdentity(rows[1])].status='approved';openBundle(bundle);
+}`,context);
+element('finish-quality').onclick();await element('stage-apply').onclick();
+assert.equal(vm.runInContext('repeatGroups().length',context),0);
+assert.equal(vm.runInContext("repeatContext['DEMO-01'].some(r=>r.timestamp==='2000-01-01T12:01:00')",context),false);
+assert.equal(element('case').hidden,true);
+element('theme').onclick();assert.equal(element('case').hidden,true);
+console.log('Two-stage review passed: explicit apply prompt, cancellation, separate screen, bad rows removed, singleton skipped.');
+})().catch(error=>{console.error(error);process.exitCode=1});

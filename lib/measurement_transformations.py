@@ -208,9 +208,9 @@ def apply_to_dataset(source, output, ledger, rules, repeat_catalog=None):
     removed = [row for row in rows if key(row) in ledger['exclusions']
                and ledger['exclusions'][key(row)].get('status')=='approved'
                and key(row) not in ledger['keep_overrides']]
-    from repeat_selection import repeat_groups, valid_selection
+    from repeat_selection import surviving_repeat_groups, valid_selection
     identities={key(r) for r in rows}
-    groups={g:v for g,v in (repeat_catalog if repeat_catalog is not None else repeat_groups(rows)).items() if identities.intersection(v['identities'])}
+    groups={g:v for g,v in (repeat_catalog if repeat_catalog is not None else surviving_repeat_groups(rows,ledger)).items() if identities.intersection(v['identities'])}
     repeat_removed=set()
     unresolved=[]
     for group_id,group in groups.items():
@@ -303,9 +303,9 @@ def main():
             if decision.get('status') not in {'pending','approved','rejected'}:raise ValueError('Invalid hypothesis decision')
             original.update(status=decision['status'],review_note=decision.get('review_note',''))
     if args.import_decisions:
-        from repeat_selection import repeat_groups, validate_selections
+        from repeat_selection import surviving_repeat_groups, validate_selections
         all_rows=[row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]]
-        ledger['repeat_selections']=validate_selections(repeat_groups(all_rows),incoming.get('repeat_selections',{}),ledger['exclusions'])
+        ledger['repeat_selections']=validate_selections(surviving_repeat_groups(all_rows,ledger),incoming.get('repeat_selections',{}),ledger['exclusions'])
     rules = ledger['rules']
     rules.setdefault('review_csd_degrees',4)
     # Discover in every source first, then filter them all with the final union
@@ -325,8 +325,8 @@ def main():
                     entry.update(status='pending',changed_source_requires_review=True)
                     entry[fingerprint_field]=current[identity]
         findings[dataset]=scan_rows(rows,ledger,rules)
-    from repeat_selection import repeat_groups
-    repeat_catalog=repeat_groups([row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]])
+    from repeat_selection import surviving_repeat_groups
+    repeat_catalog=surviving_repeat_groups([row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]],ledger)
     active_reviews = {}
     summaries=[]
     for dataset in args.datasets:

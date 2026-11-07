@@ -41,3 +41,14 @@ def validate_selections(groups, incoming, exclusions):
             raise ValueError('Repeat selection changed, is excluded, or is unknown; review again: '+group_id)
         result[group_id]={**group,'selected_identity':selection['selected_identity']}
     return result
+
+
+def surviving_repeat_groups(rows, ledger):
+    """Only groups still duplicated after approved quality exclusions."""
+    result={}
+    for group_id,group in repeat_groups(rows).items():
+        survivors=[identity for identity in group['identities']
+                   if ledger.get('exclusions',{}).get(identity,{}).get('status')!='approved']
+        if len(survivors)>1:
+            result[group_id]={**group,'identities':survivors,'source_identities':group['identities']}
+    return result
