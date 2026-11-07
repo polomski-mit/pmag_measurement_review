@@ -233,9 +233,10 @@ assert.equal(element('case').hidden,true);
 element('theme').onclick();assert.equal(element('case').hidden,true);
 // Manual preview supports unsuggested measurements without changing decisions.
 element('demo').onclick();
-element('manual-specimen').value='DEMO-01';vm.runInContext("fillManualMeasurements('DEMO-01|2000-01-01T12:00:00')",context);element('manual-model').value='arrow-x';
+element('manual-model').value='arrow-x';
 const beforePreview=vm.runInContext('JSON.stringify(ledger)',context),beforeCache=JSON.stringify([...cache]);
-element('manual-preview-button').onclick();assert.equal(element('manual-preview').hidden,false);assert.match(element('manual-preview-values').textContent,/Preview:/);assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);assert.equal(JSON.stringify([...cache]),beforeCache);
+element('manual-preview-button').onclick();assert.equal(element('manual-preview-button').textContent,'Stop flip preview');assert.match(element('manual-preview-values').textContent,/Preview:/);assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);assert.equal(JSON.stringify([...cache]),beforeCache);
+element('manual-preview-button').onclick();assert.equal(element('manual-preview-button').textContent,'Preview loading flip');assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);element('manual-preview-button').onclick();
 element('manual-propose').onclick();key('Escape');assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);
 element('manual-propose').onclick();key('Enter');
 assert.equal(vm.runInContext("current().id.startsWith('manual-flip:')",context),true);assert.equal(vm.runInContext('entry(current()).status',context),'pending');assert.equal(element('decision').textContent,'PENDING');assert.doesNotMatch(element('reasons').children[0].children[0].textContent,/NaN/);
