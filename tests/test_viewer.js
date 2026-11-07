@@ -256,5 +256,9 @@ assert.equal(vm.runInContext('position',context),1);
 vm.runInContext("entry(initial.deck[1]).status='approved';resumeToUndecided()",context);
 assert.equal(vm.runInContext('position===initial.deck.length-1',context),true);
 console.log('Resume passed: next undecided, wraparound, completed review at end.');
+const distances=vm.runInContext(`flipNeighborDistances({specimen:'T',timestamp:'s',treat_temp:400,dir_dec:30,dir_inc:40},'arrow-x',[{specimen:'T',timestamp:'a',treat_temp:390,dir_dec:330,dir_inc:-40},{specimen:'T',timestamp:'b',treat_temp:410,dir_dec:330,dir_inc:-40},{specimen:'T',timestamp:'c',treat_temp:395,dir_dec:0,dir_inc:0,_screened_out:true}])`,context);
+assert.equal(distances.length,2);assert.ok(distances.every(d=>d.before>90&&d.after<.00001));assert.equal(vm.runInContext("angularDistance({dir_dec:359,dir_inc:0},{dir_dec:1,dir_inc:0})",context).toFixed(1),'2.0');
+console.log('Flip distances passed: spherical angles, wraparound, screened neighbors.');
+
 
 })().catch(error=>{console.error(error);process.exitCode=1});
