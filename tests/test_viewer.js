@@ -3,10 +3,11 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
-const elements=new Map(), handlers={}, cache=new Map(), alerts=[];
+const elements=new Map(), handlers={}, cache=new Map(), alerts=[],plotLabels=[];
 const canvas=new Proxy({}, {get(target,key){return target[key]??((...args)=>{
   for(const arg of args)if(typeof arg==='number')assert.ok(Number.isFinite(arg),`${key}: nonfinite coordinate`);
 })}});
+canvas.fillText=(value,x,y)=>{assert.ok(Number.isFinite(x)&&Number.isFinite(y));plotLabels.push(value)};
 function element(id){if(!elements.has(id))elements.set(id,{
   value:id==='filter'?'all':'',style:{},clientWidth:900,children:[],
   replaceChildren(...children){this.children=children},append(...children){this.children.push(...children)},setAttribute(){},
@@ -27,6 +28,9 @@ assert.equal(element('theme').textContent,'Light mode');
 
 element('demo').onclick();
 assert.equal(element('counter').textContent,'1 / 4');
+assert.ok(plotLabels.some(label=>label.startsWith('SELECTED: DEMO-01')));
+assert.ok(plotLabels.some(label=>label.startsWith('SELECTED H ·')));
+assert.ok(plotLabels.some(label=>label.startsWith('SELECTED V ·')));
 assert.equal(element('reasons').children.length,2);
 assert.match(element('case-warning').className,/severity-red/);
 assert.match(element('csd-warning').style.cssText,/#c62828/);
@@ -162,7 +166,7 @@ console.log('Repeat picker passed: explicit selection, cancel/confirm, zoom, sam
 
 // Every repeat has clickable, separately numbered callouts, even when coincident.
 const repeatCanvas=element('plots');
-repeatCanvas.getBoundingClientRect=()=>({left:10,top:20,width:450,height:470});
+repeatCanvas.getBoundingClientRect=()=>({left:10,top:20,width:450,height:490});
 const labelHits=repeatCanvas._repeatHitTargets.filter(h=>h.kind==='label');
 assert.equal(new Set(labelHits.map(h=>h.identity)).size,2);
 assert.equal(labelHits.length,10); // moment, CSD, directions, H and V for each
