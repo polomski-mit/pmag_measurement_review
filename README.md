@@ -118,7 +118,7 @@ Run `python3 -m unittest discover -s tests` for the packaged checks. See
 
 ## Repeated temperatures and zoom
 
-Every specimen/temperature with multiple observations requires an explicit retained measurement. Use **Repeated temperature**, inspect the timestamp/CSD/moment choices, and confirm **Keep this one** with Enter (Esc cancels). Other repeats remain visible as excluded in the screened plot and remain intact in raw sources. New members or changed source vectors invalidate the previous choice. Existing approved exclusions cannot be chosen as winners.
+Every specimen/temperature with multiple observations requires an explicit retained measurement. Use **Repeated temperature**, inspect the timestamp/CSD/moment choices, and confirm **Keep this one** with Enter (Esc cancels). During comparison, every repeat is shown together with a distinct color and number across all plots. Click a point, numbered callout, or candidate button to select it, then confirm separately. Coincident points have separate callouts; clicking an ambiguous overlap never chooses silently. Outside comparison, other repeats remain visible as excluded in the screened plot and remain intact in raw sources. New members or changed source vectors invalidate the previous choice. Existing approved exclusions cannot be chosen as winners.
 
 Select **Plot range → Zoom · closest temperature steps** to show the current temperature plus the nearest two levels on each side, including every repeat. Moment and CSD axes zoom too, and vector normalization uses this window.
 

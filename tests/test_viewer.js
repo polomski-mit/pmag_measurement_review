@@ -9,7 +9,7 @@ const canvas=new Proxy({}, {get(target,key){return target[key]??((...args)=>{
 })}});
 function element(id){if(!elements.has(id))elements.set(id,{
   value:id==='filter'?'all':'',style:{},clientWidth:900,children:[],
-  replaceChildren(...children){this.children=children},setAttribute(){},
+  replaceChildren(...children){this.children=children},append(...children){this.children.push(...children)},setAttribute(){},
   getContext(){return canvas},click(){},closest(){return null},showModal(){this.open=true},close(){this.open=false}
 });return elements.get(id)}
 const document={documentElement:{dataset:{}},getElementById:element,createElement:()=>element(Symbol()),addEventListener:(name,fn)=>handlers[name]=fn};
@@ -151,3 +151,28 @@ assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_i
 assert.match(element('repeat-status').textContent,/0 repeated/);
 assert.equal(vm.runInContext("screenedRows('DEMO-01').find(r=>r.timestamp==='2000-01-01T12:01:00')._screened_out",context),true);
 console.log('Repeat picker passed: explicit selection, cancel/confirm, zoom, same-session screened plots.');
+
+// Every repeat has clickable, separately numbered callouts, even when coincident.
+const repeatCanvas=element('plots');
+repeatCanvas.getBoundingClientRect=()=>({left:10,top:20,width:450,height:470});
+const labelHits=repeatCanvas._repeatHitTargets.filter(h=>h.kind==='label');
+assert.equal(new Set(labelHits.map(h=>h.identity)).size,2);
+assert.equal(labelHits.length,10); // moment, CSD, directions, H and V for each
+const firstIdentity=labelHits[0].identity;
+const savedWinner=vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context);
+const pointHit=repeatCanvas._repeatHitTargets.find(h=>h.kind==='point'&&h.identity===firstIdentity);
+repeatCanvas.onclick({clientX:10+(pointHit.x+9)/2,clientY:20+(pointHit.y+9)/2});
+assert.match(element('repeat-status').textContent,/overlap/i);
+const firstLabel=labelHits[0];
+repeatCanvas.onclick({clientX:10+(firstLabel.x+18)/2,clientY:20+(firstLabel.y+9)/2});
+assert.equal(element('repeat-member').value,firstIdentity);
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
+const buttons=element('repeat-options').children;
+assert.equal(buttons.length,3);
+assert.equal(buttons[0].textContent.includes('SELECTED'),true);
+buttons[1].onclick();
+assert.equal(element('repeat-member').value,savedWinner);
+console.log('Repeat plots passed: all candidates shown, overlap handling, scaled-canvas clicks, clickable candidate list, no implicit save.');
+
+buttons[2].onclick();assert.equal(element('confirm-dialog').open,true);key('Escape');
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
