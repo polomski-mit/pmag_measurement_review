@@ -58,7 +58,12 @@ flips and incoming swap observations appear teal; faint original flip vectors
 remain visible. Rejected proposals retain the original observation, and pending
 proposals do not change the series. A teal preview for the current pending
 flip/swap is only a hypothesis. Switch to **Before review** to compare recorded
-data. All four plots update after confirmation or loading saved decisions;
+data. Trajectories follow treatment temperature (repeats by time), with gaps at
+excluded treatments even across repeats. Exclusions use faded red crosses.
+The enlarged Zijderveld panel uses filled horizontal circles and open vertical
+squares, colored from cool to hot treatment. Choose X–Y / X–(−Z) or Y–X /
+Y–(−Z), and full trajectory or nearby context. Axes are specimen coordinates,
+not geographic north/east. All four plots update after confirmation or loading saved decisions;
 these are browser previews, not writes to your input tables. Conflicting
 approved actions are withheld from affected observations and shown as a warning.
 

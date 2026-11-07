@@ -128,5 +128,10 @@ element('plot-view').value='screened';element('plot-view').onchange();
 assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),2);
 vm.runInContext('openBundle(initial)',context);
 assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),2);
+// A retained segment may not cross an excluded treatment, including repeat runs.
+assert.equal(vm.runInContext("plotRuns([{treat_temp:600},{treat_temp:650},{treat_temp:625,_screened_out:true}],r=>[r.treat_temp,0]).length",context),2);
+for(const axis of ['x','y'])for(const full of [true,false]){
+ vm.runInContext(`drawReviewPlots(document.getElementById('plots'),screenedRows('DEMO-01'),screenedRows('DEMO-01')[1],null,{kelvinOffset:273.15,axis:'${axis}',full:${full}})`,context);
+}
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
