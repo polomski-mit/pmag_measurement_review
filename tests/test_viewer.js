@@ -185,13 +185,13 @@ repeatCanvas.onclick({clientX:10+(firstLabel.x+18)/2,clientY:20+(firstLabel.y+9)
 assert.equal(element('repeat-member').value,firstIdentity);
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
 const buttons=element('repeat-options').children;
-assert.equal(buttons.length,4);
+assert.equal(buttons.length,2);
 assert.equal(buttons[0].textContent.includes('SELECTED'),true);
 buttons[1].onclick();
 assert.equal(element('repeat-member').value,savedWinner);
 console.log('Repeat plots passed: all candidates shown, overlap handling, scaled-canvas clicks, clickable candidate list, no implicit save.');
 
-buttons[2].onclick();assert.equal(element('confirm-dialog').open,true);key('Escape');
+element('repeat-all-bad').onclick();assert.equal(element('confirm-dialog').open,true);key('Escape');
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
 
 // Rejecting every repeat is explicit, reversible, and screens out all candidates.
