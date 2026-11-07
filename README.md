@@ -115,3 +115,11 @@ the reviewed application runs deterministic Python/JavaScript without a model.
 
 Run `python3 -m unittest discover -s tests` for the packaged checks. See
 `RELEASE.md` for reproducible packaging and deployment notes.
+
+## Repeated temperatures and zoom
+
+Every specimen/temperature with multiple observations requires an explicit retained measurement. Use **Repeated temperature**, inspect the timestamp/CSD/moment choices, and confirm **Keep this one** with Enter (Esc cancels). Other repeats remain visible as excluded in the screened plot and remain intact in raw sources. New members or changed source vectors invalidate the previous choice. Existing approved exclusions cannot be chosen as winners.
+
+Select **Plot range → Zoom · closest temperature steps** to show the current temperature plus the nearest two levels on each side, including every repeat. Moment and CSD axes zoom too, and vector normalization uses this window.
+
+Applying transformations withholds unresolved repeat groups entirely from derived inputs and records `pending_repeat_groups` and `fit_ready` in the audit. Resolve every group (or approve all members’ exclusions if all are bad) before fitting. Decision JSON can still be saved as a progress backup. Reload/recalculate PCA fits against reviewed inputs; this tool does not rewrite existing fit results.

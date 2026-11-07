@@ -135,3 +135,19 @@ for(const axis of ['x','y'])for(const full of [true,false]){
 }
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
+// Repeat choices require confirmation and update screened plots immediately.
+vm.runInContext(`{
+ const bundle=structuredClone(demoPayload),rows=bundle.context['DEMO-01'];
+ const repeated={...rows[1],timestamp:'2000-01-01T13:00:00',_review_identity:'DEMO-01|2000-01-01T13:00:00',dir_csd:'1'};rows.push(repeated);
+ bundle.bundle_id='repeat-regression';bundle.repeat_groups={'repeat-test':{group_id:'repeat-test',specimen:'DEMO-01',treat_temp:Number(rows[1].treat_temp),signature:'signature-test',identities:[rowIdentity(rows[1]),rowIdentity(repeated)]}};openBundle(bundle);
+}`,context);
+assert.match(element('repeat-status').textContent,/1 repeated/);
+element('repeat-member').value='DEMO-01|2000-01-01T13:00:00';element('repeat-open').onclick();
+assert.equal(element('vector-context').value,'local');assert.equal(element('yes').disabled,true);
+element('repeat-choose').onclick();key('Escape');
+assert.equal(vm.runInContext('Object.keys(ledger.repeat_selections||{}).length',context),0);
+element('repeat-choose').onclick();key('Enter');
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),'DEMO-01|2000-01-01T13:00:00');
+assert.match(element('repeat-status').textContent,/0 repeated/);
+assert.equal(vm.runInContext("screenedRows('DEMO-01').find(r=>r.timestamp==='2000-01-01T12:01:00')._screened_out",context),true);
+console.log('Repeat picker passed: explicit selection, cancel/confirm, zoom, same-session screened plots.');

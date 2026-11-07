@@ -202,22 +202,42 @@ def scan_rows(rows, ledger, rules):
     return discoveries
 
 
-def apply_to_dataset(source, output, ledger, rules):
+def apply_to_dataset(source, output, ledger, rules, repeat_catalog=None):
     marker, headers, rows = read_table(source/'measurements.txt')
     discoveries = scan_rows(rows,ledger,rules)
     removed = [row for row in rows if key(row) in ledger['exclusions']
                and ledger['exclusions'][key(row)].get('status')=='approved'
                and key(row) not in ledger['keep_overrides']]
-    removed_keys = {key(row) for row in removed}
+    from repeat_selection import repeat_groups, valid_selection
+    identities={key(r) for r in rows}
+    groups={g:v for g,v in (repeat_catalog if repeat_catalog is not None else repeat_groups(rows)).items() if identities.intersection(v['identities'])}
+    repeat_removed=set()
+    unresolved=[]
+    for group_id,group in groups.items():
+        selection=ledger.get('repeat_selections',{}).get(group_id)
+        if valid_selection(group,selection,ledger['exclusions']):
+            repeat_removed.update(set(group['identities'])-{selection['selected_identity']})
+        elif all(ledger['exclusions'].get(identity,{}).get('status')=='approved' and identity not in ledger['keep_overrides'] for identity in group['identities']):
+            repeat_removed.update(group['identities'])
+        else:
+            # Pending repeats cannot silently overweight a downstream fit.
+            repeat_removed.update(group['identities'])
+            unresolved.append(group_id)
+    removed_keys = {key(row) for row in removed}|repeat_removed
+    removed = [row for row in rows if key(row) in removed_keys]
     retained = [dict(row) for row in rows if key(row) not in removed_keys]
     available={key(row):row for row in retained}
     touched=set()
-    actions=[]
+    actions=[dict(action='repeat_selection_pending',group_id=g) for g in unresolved]
+    actions += [dict(action='repeat_selection',group_id=g,selected_identity=ledger['repeat_selections'][g]['selected_identity']) for g in groups if g not in unresolved and valid_selection(groups[g],ledger.get('repeat_selections',{}).get(g),ledger['exclusions'])]
     for decision in ledger.get('review_candidates',[]):
         if decision.get('status')!='approved':continue
         identities=[decision['identity']]
         if decision['type']=='possible_swap':identities.append(decision['partner_identity'])
-        if not any(identity in available for identity in identities):continue
+        if not any(identity in available for identity in identities):
+            if any(identity in {key(row) for row in rows} for identity in identities):
+                actions.append({'review_id':decision['review_id'],'action':'not_applied_excluded_or_pending_repeat'})
+            continue
         if not all(identity in available for identity in identities):
             actions.append({'review_id':decision['review_id'],'action':'not_applied_missing_or_excluded_partner'})
             continue
@@ -233,6 +253,10 @@ def apply_to_dataset(source, output, ledger, rules):
             a['specimen'],b['specimen']=b['specimen'],a['specimen']
         touched.update(identities)
         actions.append({'review_id':decision['review_id'],'action':'applied','source_identities':identities})
+    counts=defaultdict(int)
+    for row in retained:counts[(row['specimen'],number(row,'treat_temp'))]+=1
+    if any(count>1 for count in counts.values()):
+        raise ValueError('Approved swaps create duplicate temperatures; resolve before applying')
     return marker, headers, retained, removed, discoveries, actions
 
 
@@ -278,6 +302,10 @@ def main():
                 raise ValueError('Review hypothesis source changed')
             if decision.get('status') not in {'pending','approved','rejected'}:raise ValueError('Invalid hypothesis decision')
             original.update(status=decision['status'],review_note=decision.get('review_note',''))
+    if args.import_decisions:
+        from repeat_selection import repeat_groups, validate_selections
+        all_rows=[row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]]
+        ledger['repeat_selections']=validate_selections(repeat_groups(all_rows),incoming.get('repeat_selections',{}),ledger['exclusions'])
     rules = ledger['rules']
     rules.setdefault('review_csd_degrees',4)
     # Discover in every source first, then filter them all with the final union
@@ -297,20 +325,22 @@ def main():
                     entry.update(status='pending',changed_source_requires_review=True)
                     entry[fingerprint_field]=current[identity]
         findings[dataset]=scan_rows(rows,ledger,rules)
+    from repeat_selection import repeat_groups
+    repeat_catalog=repeat_groups([row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]])
     active_reviews = {}
     summaries=[]
     for dataset in args.datasets:
         source=args.source_root/dataset;out=args.output_root/dataset
         if out.resolve().is_relative_to(source.resolve()) or source.resolve().is_relative_to(out.resolve()):
             raise ValueError('Output must be separate from source')
-        marker,headers,retained,removed,discoveries,actions=apply_to_dataset(source,out,ledger,rules)
+        marker,headers,retained,removed,discoveries,actions=apply_to_dataset(source,out,ledger,rules,repeat_catalog)
         for item in discoveries:
             if item['disposition']=='review':
                 ident='|'.join([item['type'],item['identity'],item.get('partner_identity',''),item.get('model','')])
                 active_reviews.setdefault(ident,{**item,'datasets':[]})['datasets'].append(dataset)
         summary=dict(dataset=dataset,input_rows=len(retained)+len(removed),retained_rows=len(retained),removed_rows=len(removed),
             new_low_moment_flags=sum(r['type']=='low_moment' for r in discoveries),
-            flip_candidates=sum(r['type']=='possible_flip' for r in discoveries),swap_candidates=sum(r['type']=='possible_swap' for r in discoveries),approved_actions_applied=sum(a['action']=='applied' for a in actions))
+            flip_candidates=sum(r['type']=='possible_flip' for r in discoveries),swap_candidates=sum(r['type']=='possible_swap' for r in discoveries),approved_actions_applied=sum(a['action']=='applied' for a in actions),pending_repeat_groups=sum(a['action']=='repeat_selection_pending' for a in actions),fit_ready=not any(a['action']=='repeat_selection_pending' for a in actions))
         summaries.append(summary)
         if args.apply:
             out.mkdir(parents=True,exist_ok=True)
@@ -332,7 +362,7 @@ def main():
     if args.apply:
         atomic_json(args.ledger,ledger)
         atomic_json(args.output_root/'summary.json',summaries)
-        (args.output_root/'README.md').write_text('# Reviewed measurement inputs\n\nRegenerate after downloads/conversion with `python3 functions/measurement_transformations.py --apply`.\n\nRaw/CIT and canonical MagIC sources are unchanged. Only user-approved exclusions, flips and swaps affect these derived measurements. Pending proposals do not change data. Removed rows and applied transformations are audited. These are measurement inputs, not complete fitted PmagPy contributions: reload/recalculate saved fits against filtered data before reporting directions.\n')
+        (args.output_root/'README.md').write_text('# Reviewed measurement inputs\n\nRegenerate after downloads/conversion with `python3 functions/measurement_transformations.py --apply`.\n\nRaw/CIT and canonical MagIC sources are unchanged. Approved exclusions, flips, swaps and explicit repeat choices affect derived measurements. Unresolved repeated-temperature groups are withheld, with pending groups and fit readiness recorded in the audit. Raw repeats remain intact; choose one or explicitly exclude all before fitting. Removed rows and applied transformations are audited. These are measurement inputs, not complete fitted PmagPy contributions: reload/recalculate saved fits against filtered data before reporting directions.\n')
     print(json.dumps(summaries,indent=2))
     print(f"{'Saved' if args.apply else 'Previewed'} {len(ledger['exclusions'])} persistent exclusions and {len(active_reviews)} current review hypotheses.")
 

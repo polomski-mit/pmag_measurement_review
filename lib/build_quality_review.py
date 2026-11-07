@@ -17,16 +17,21 @@ def empty_ledger():
 
 
 def payload_for(ledger, sources):
+    from repeat_selection import repeat_groups
     context={};provenance=defaultdict(list)
+    merged=defaultdict(dict)
     for name,rows in sources.items():
         by_spec=defaultdict(list)
         for original in rows:
             row={**original,'_review_identity':key(original)}
             by_spec[row['specimen']].append(row)
+            merged[row['specimen']][key(row)]=row
             provenance[key(row)].append(name)
         for specimen,values in by_spec.items():
             if len(values)>len(context.get(specimen,[])):
                 context[specimen]=values
+    context={specimen:list(values.values()) for specimen,values in merged.items()}
+    repeats=repeat_groups([r for rows in context.values() for r in rows])
     present=set(provenance);deck=[]
     for identity,entry in ledger['exclusions'].items():
         if identity in present:
@@ -38,7 +43,7 @@ def payload_for(ledger, sources):
                 specimen=entry['identity'].split('|')[0],identity=entry['identity'],datasets=entry.get('datasets',[])))
     deck.sort(key=lambda c:(c['type']=='exclusion' and ledger['exclusions'][c['id']]['reasons']==['existing_bad_flag'],c['specimen'],c['identity'],c['type']))
     payload=dict(format='measurement-review-bundle',version=1,ledger=ledger,deck=deck,context=context,
-                 temperature_offset_K=ledger['rules'].get('kelvin_offset',273.0))
+                 temperature_offset_K=ledger['rules'].get('kelvin_offset',273.0),repeat_groups=repeats)
     payload['bundle_id']=hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()[:24]
     payload['generated']=datetime.now().isoformat(timespec='seconds')
     return payload
