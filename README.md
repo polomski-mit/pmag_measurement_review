@@ -3,8 +3,9 @@
 A local, keyboard-driven reviewer for thermal paleomagnetic MagIC measurements.
 Approve or reject proposed exclusions, loading flips, and reciprocal specimen
 swaps with moment, equal-area, Zijderveld, and CSD plots alongside each case.
-A contextual sidebar explains each flag using its evidence and introduces
-vector projections, moment, and interpretation of the Zijderveld plot.
+Each bulleted reason includes an explanation using its evidence. A guide
+below the plots introduces vector projections, moment, and interpretation
+of the Zijderveld plot.
 
 ## Quick start
 

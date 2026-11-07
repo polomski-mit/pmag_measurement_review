@@ -24,10 +24,9 @@ element('demo').onclick();
 assert.equal(element('counter').textContent,'1 / 4');
 assert.equal(element('reasons').children.length,2);
 assert.match(element('csd-warning').style.cssText,/#c62828/);
-assert.ok(element('reasons').children.every(li=>typeof li.textContent==='string'));
-assert.equal(element('review-help').hidden,false);
-assert.match(element('flag-explanation').children.map(p=>p.textContent).join(' '),/14.0°/);
-assert.match(element('flag-explanation').children.map(p=>p.textContent).join(' '),/log interpolation/);
+assert.ok(element('reasons').children.every(li=>li.children[0].textContent&&li.children[1].textContent));
+assert.match(element('reasons').children.map(li=>li.children[1].textContent).join(' '),/14.0°/);
+assert.match(element('reasons').children.map(li=>li.children[1].textContent).join(' '),/log interpolation/);
 function key(key){handlers.keydown({key,target:{closest:()=>false},preventDefault(){}})}
 const savedBefore=JSON.stringify([...cache]);
 key('y');assert.equal(element('confirm-dialog').open,true);
@@ -43,13 +42,13 @@ for(const [choice,status] of [['y','APPROVED'],['n','REJECTED'],['u','PENDING']]
  assert.equal(stored.ledger.exclusions['DEMO-01|2000-01-01T12:01:00'].status,status.toLowerCase());
 }
 key('ArrowRight');assert.equal(element('csd-warning').hidden,true);
-assert.match(element('flag-explanation').children[0].textContent,/Vector length is unchanged/);
+assert.match(element('reasons').children[0].children[1].textContent,/Vector length is unchanged/);
 key('ArrowRight');assert.match(element('csd-warning').style.cssText,/#ef8c00/);
-assert.match(element('flag-explanation').children[0].textContent,/6.0°/);
+assert.match(element('reasons').children[0].children[1].textContent,/6.0°/);
 assert.equal(element('csd-warning').hidden,false);
 element('note').value='Reviewed synthetic case';element('note').oninput();
 key('ArrowRight');assert.equal(element('partner-card').hidden,false);
-assert.match(element('flag-explanation').children[0].textContent,/Both must improve/);
+assert.match(element('reasons').children[0].children[1].textContent,/Both must improve/);
 key('ArrowLeft');assert.equal(element('note').value,'Reviewed synthetic case');
 element('save').onclick();assert.match(element('cache-state').textContent,/downloaded/);
 assert.throws(()=>vm.runInContext('openBundle({})',context),/Unsupported review bundle/);
