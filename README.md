@@ -18,7 +18,11 @@ python3 review.py --input /path/to/magic_folder --output /path/to/review_work
 
 Open `review_work/review.html` directly, or load `review_work/review.bundle.json`
 into a hosted copy of `index.html`. Arrow keys move between cases; **Y** approves,
-**N** rejects, **U** defers. Add notes and click **Save decisions** to download
+**N** rejects, **U** defers. A confirmation dialog follows each choice: **Enter**
+saves it and advances to the next measurement; **Esc** returns to reassess
+without changing the decision. Confirmed decisions and notes autosave in this
+browser and restore on reopening the same review bundle. Browser storage can
+be cleared or unavailable, so click **Save decisions** regularly to download
 `measurement_transformations.reviewed.json`.
 
 ```sh
