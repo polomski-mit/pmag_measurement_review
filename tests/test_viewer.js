@@ -166,7 +166,7 @@ element('repeat-choose').onclick();key('Escape');
 assert.equal(vm.runInContext('Object.keys(ledger.repeat_selections||{}).length',context),0);
 element('repeat-choose').onclick();key('Enter');
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),'DEMO-01|2000-01-01T13:00:00');
-assert.match(element('repeat-status').textContent,/0 repeated/);
+assert.match(element('repeat-status').textContent,/0 of 1 temperature groups/);
 assert.equal(vm.runInContext("screenedRows('DEMO-01').find(r=>r.timestamp==='2000-01-01T12:01:00')._screened_out",context),true);
 console.log('Repeat picker passed: explicit selection, cancel/confirm, zoom, same-session screened plots.');
 
