@@ -78,7 +78,8 @@ key('y');key('Enter');assert.equal(element('counter').textContent,'1 / 3');
 assert.match(element('title').textContent,/DEMO-02/);
 // Reopening restores confirmed decisions from local autosave.
 element('demo').onclick();assert.match(element('totals').textContent,/1 approved/);
-key('ArrowRight');key('ArrowRight');key('ArrowRight');
+assert.equal(vm.runInContext('entry(current()).status',context),'pending');
+vm.runInContext('position=filtered().length-1;render()',context);
 key('u');key('Enter');assert.equal(element('counter').textContent,'4 / 4');
 assert.match(element('cache-state').textContent,/End of review list/);
 element('theme').onclick();assert.equal(document.documentElement.dataset.theme,'light');
@@ -243,4 +244,11 @@ assert.equal(vm.runInContext("current().id.startsWith('manual-flip:')",context),
 key('y');key('Enter');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
 element('manual-revisit').onclick();assert.equal(element('filter').value,'rejected');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
 console.log('Two-stage review passed: explicit apply prompt, cancellation, separate screen, bad rows removed, singleton skipped.');
+// Reopen at an undecided case, wrapping from the saved position; completed reviews stay at the end.
+vm.runInContext("initial.deck.forEach(c=>entry(c).status='approved');entry(initial.deck[1]).status='pending';position=initial.deck.length-1;resumeToUndecided()",context);
+assert.equal(vm.runInContext('position',context),1);
+vm.runInContext("entry(initial.deck[1]).status='approved';resumeToUndecided()",context);
+assert.equal(vm.runInContext('position===initial.deck.length-1',context),true);
+console.log('Resume passed: next undecided, wraparound, completed review at end.');
+
 })().catch(error=>{console.error(error);process.exitCode=1});
