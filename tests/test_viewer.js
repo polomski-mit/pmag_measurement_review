@@ -100,5 +100,33 @@ assert.equal(runs.length,2);assert.equal(runs[0].length,1);assert.equal(runs[1].
 vm.runInContext(`ledger.exclusions['SWAP-01|2000-01-01T12:10:00']={status:'approved'}`,context);
 assert.equal(vm.runInContext("screenedRows('SWAP-02').some(r=>r._screened_changed)",context),false);
 assert.match(element('plot-state').textContent,/Conflicting/);
+// Three flags for one specimen: same-session decisions accumulate in After.
+vm.runInContext(`{
+ const bundle=structuredClone(demoPayload),rows=bundle.context['DEMO-01'];
+ const template=Object.values(bundle.ledger.exclusions)[0];
+ bundle.bundle_id='same-specimen-regression';bundle.deck=[];
+ bundle.ledger.exclusions={};bundle.ledger.review_candidates=[];
+ rows.forEach(row=>{const id=rowIdentity(row);
+  bundle.ledger.exclusions[id]={...structuredClone(template),status:'pending',specimen:row.specimen,timestamp:row.timestamp};
+  bundle.deck.push({section:'exclusions',id,type:'exclusion',identity:id,specimen:row.specimen,datasets:['Synthetic regression']});
+ });openBundle(bundle);
+}`,context);
+key('y');key('Enter');
+assert.equal(element('counter').textContent,'2 / 3');
+assert.equal(vm.runInContext("screenedRows('DEMO-01')[0]._screened_out",context),true);
+key('n');key('Enter');
+assert.equal(element('counter').textContent,'3 / 3');
+assert.equal(vm.runInContext("screenedRows('DEMO-01')[0]._screened_out",context),true);
+assert.equal(vm.runInContext("!!screenedRows('DEMO-01')[1]._screened_out",context),false);
+key('y');key('Escape');
+assert.equal(vm.runInContext("!!screenedRows('DEMO-01')[2]._screened_out",context),false);
+key('y');key('Enter');
+assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),2);
+element('plot-view').value='raw';element('plot-view').onchange();
+assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),0);
+element('plot-view').value='screened';element('plot-view').onchange();
+assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),2);
+vm.runInContext('openBundle(initial)',context);
+assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>r._screened_out).length",context),2);
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
