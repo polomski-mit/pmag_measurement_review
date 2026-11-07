@@ -262,3 +262,8 @@ console.log('Flip distances passed: spherical angles, wraparound, screened neigh
 
 
 })().catch(error=>{console.error(error);process.exitCode=1});
+
+const zoomCheck=vm.runInContext(`(()=>{const rows=[1,1.2,1.1,89].map((csd,i)=>({dir_csd:csd,magn_moment:1e-8,treat_temp:900+i}));rows.push({...rows[0],_screened_out:true,dir_csd:1000});return {zoom:zoomPlotRows(rows).map(r=>!!r._plot_hidden),full:zoomPlotRows(rows,true).map(r=>!!r._plot_hidden)}})()`,context);
+assert.deepEqual(Array.from(zoomCheck.zoom),[false,false,false,true,true]);
+assert.deepEqual(Array.from(zoomCheck.full),[false,false,false,false,true]);
+console.log('Zoom filtering passed: excluded observations ignored, outliers hidden only in zoom.');
