@@ -241,9 +241,15 @@ element('manual-preview-button').onclick();assert.equal(element('manual-preview-
 element('manual-propose').onclick();key('Escape');assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);
 element('manual-propose').onclick();key('Enter');
 assert.equal(vm.runInContext("current().id.startsWith('manual-flip:')",context),true);assert.equal(vm.runInContext('entry(current()).status',context),'pending');assert.equal(element('decision').textContent,'PENDING');assert.doesNotMatch(element('reasons').children[0].children[0].textContent,/NaN/);
+vm.runInContext("if(ledger.exclusions[current().identity])ledger.exclusions[current().identity].status='pending'",context);
 key('y');key('Enter');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
 element('manual-revisit').onclick();assert.equal(element('filter').value,'rejected');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
 console.log('Two-stage review passed: explicit apply prompt, cancellation, separate screen, bad rows removed, singleton skipped.');
+// A second approved action is blocked with links; existing decisions stay intact.
+vm.runInContext("const flipCard=initial.deck.find(c=>entry(c).origin==='manual');jumpToDecision(flipCard);entry(flipCard).status='pending';ledger.exclusions[flipCard.identity]||={status:'pending',reasons:['high_csd']};if(!initial.deck.some(c=>c.section==='exclusions'&&c.id===flipCard.identity))initial.deck.push({...flipCard,section:'exclusions',id:flipCard.identity,type:'exclusion'});ledger.exclusions[flipCard.identity].status='approved'",context);
+const conflictBefore=vm.runInContext('JSON.stringify(ledger)',context);key('y');
+assert.equal(element('stage-dialog').open,true);assert.equal(element('stage-apply').disabled,true);assert.ok(element('stage-conflicts').children.length>0);assert.equal(vm.runInContext('JSON.stringify(ledger)',context),conflictBefore);
+element('stage-conflicts').children[0].children.find(n=>n.textContent.startsWith('Review exclusion')).onclick();assert.equal(element('stage-dialog').open,false);assert.equal(vm.runInContext('current().type',context),'exclusion');
 // Reopen at an undecided case, wrapping from the saved position; completed reviews stay at the end.
 vm.runInContext("initial.deck.forEach(c=>entry(c).status='approved');entry(initial.deck[1]).status='pending';position=initial.deck.length-1;resumeToUndecided()",context);
 assert.equal(vm.runInContext('position',context),1);
