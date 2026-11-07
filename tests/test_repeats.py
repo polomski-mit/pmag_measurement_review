@@ -89,6 +89,25 @@ class RepeatTests(unittest.TestCase):
             ledger['exclusions'][key(rows[1])]['status']='approved'
             self.assertEqual(surviving_repeat_groups(rows,ledger),{})
 
+    def test_manual_flip_applies_without_detector_suggestion(self):
+        from measurement_transformations import manual_flip
+        rows=[row(0,768),row(1,773),row(2,778)]
+        decision=manual_flip(rows[1],'arrow-x');decision['status']='approved'
+        ledger=empty_ledger();ledger['review_candidates']=[decision]
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)
+            with (source/'measurements.txt').open('w') as stream:
+                stream.write('tab\tmeasurements\n');writer=csv.DictWriter(stream,fieldnames=list(rows[0]),delimiter='\t');writer.writeheader();writer.writerows(rows)
+            applied=apply_to_dataset(source,source/'out',ledger,DEFAULT_RULES)
+            changed=next(r for r in applied[2] if key(r)==key(rows[1]))
+            self.assertEqual(float(changed['dir_dec']),350)
+            self.assertEqual(float(changed['dir_inc']),-30)
+            self.assertEqual(changed['magn_moment'],rows[1]['magn_moment'])
+            ledger['review_candidates'][0]['source_fingerprint']='changed'
+            with self.assertRaisesRegex(ValueError,'source changed'):
+                apply_to_dataset(source,source/'out',ledger,DEFAULT_RULES)
+        with self.assertRaises(ValueError):manual_flip(rows[1],'antipode')
+
     def test_payload_merges_overlapping_context(self):
         rows=[row(0),row(1),row(2,778)]
         bundle=payload_for(empty_ledger(),{'first':rows[:2],'second':rows[1:]})

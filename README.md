@@ -132,3 +132,11 @@ Applying transformations withholds unresolved repeat groups entirely from derive
 The all-bad option is emphasized when every candidate has high scatter (>4° CSD), a direction ≥30° from both reliable bracketing levels, or a moment ≥100× weaker/stronger than both. Brackets must be within 25°C, have CSD ≤4°, and agree within 20°; moment comparisons additionally require reference moments within a factor of 10. No bracketing evidence means no automatic emphasis. Bullet points explain each candidate; this heuristic never makes a decision for you.
 
 Zijderveld geometry follows PmagPy Demag: East/Y and Down/Z plot downward in the X view; the Y view rotates declination by 90°. Specimen axes are labeled explicitly, without assuming geographic orientation. The frame includes the origin and fits displayed components at equal scales. Pink halos identify the selected measurement independently of projection colors.
+
+## Manual loading-flip previews
+
+Open **Preview a loading flip · revisit rejected proposals** to select any specimen and timestamp, including measurements with no detector suggestion. **Use current measurement** fills the selectors from the current review. Choose the X- or Y-axis half-turn and **Preview flip · no changes** to compare recorded and proposed directions; moment is unchanged. Previewing never saves or approves a decision. **Create flip proposal for review** requires Enter confirmation and creates a pending proposal, which you approve separately with Y/Enter. Original files remain intact, and source fingerprints must match when saving/applying.
+
+**Revisit rejected proposals** opens the rejected queue without changing its decisions. Preview either model or create a separate manual proposal; the earlier proposal and notes stay available. Reassessing a saved decision records its previous status in decision history. Approved exclusions or overlapping corrections must be resolved before applying a conflicting flip.
+
+The purple theme preserves scientific warning/projection colors. The warning-color guide is in the top menu; temperature/case navigation sticks directly below the menu as you scroll.

@@ -231,5 +231,15 @@ assert.equal(vm.runInContext('repeatGroups().length',context),0);
 assert.equal(vm.runInContext("repeatContext['DEMO-01'].some(r=>r.timestamp==='2000-01-01T12:01:00')",context),false);
 assert.equal(element('case').hidden,true);
 element('theme').onclick();assert.equal(element('case').hidden,true);
+// Manual preview supports unsuggested measurements without changing decisions.
+element('demo').onclick();
+element('manual-specimen').value='DEMO-01';vm.runInContext("fillManualMeasurements('DEMO-01|2000-01-01T12:00:00')",context);element('manual-model').value='arrow-x';
+const beforePreview=vm.runInContext('JSON.stringify(ledger)',context),beforeCache=JSON.stringify([...cache]);
+element('manual-preview-button').onclick();assert.equal(element('manual-preview').hidden,false);assert.match(element('manual-preview-values').textContent,/Preview:/);assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);assert.equal(JSON.stringify([...cache]),beforeCache);
+element('manual-propose').onclick();key('Escape');assert.equal(vm.runInContext('JSON.stringify(ledger)',context),beforePreview);
+element('manual-propose').onclick();key('Enter');
+assert.equal(vm.runInContext("current().id.startsWith('manual-flip:')",context),true);assert.equal(vm.runInContext('entry(current()).status',context),'pending');assert.equal(element('decision').textContent,'PENDING');assert.doesNotMatch(element('reasons').children[0].children[0].textContent,/NaN/);
+key('y');key('Enter');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
+element('manual-revisit').onclick();assert.equal(element('filter').value,'rejected');assert.equal(vm.runInContext("ledger.review_candidates.find(e=>e.origin==='manual').status",context),'approved');
 console.log('Two-stage review passed: explicit apply prompt, cancellation, separate screen, bad rows removed, singleton skipped.');
 })().catch(error=>{console.error(error);process.exitCode=1});

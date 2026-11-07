@@ -36,6 +36,14 @@ def key(row):
     return f"{row['specimen']}|{stamp}"
 
 
+def manual_flip(row, model):
+    if model not in {'arrow-x','arrow-y'}:raise ValueError('Unsupported manual loading flip')
+    identity=key(row)
+    return dict(review_id='manual-flip:'+identity+':'+model,identity=identity,
+                type='possible_flip',origin='manual',model=model,status='pending',
+                source_fingerprint=fingerprint(row),support='manual_review',disposition='review')
+
+
 def number(row, name, default=float('nan')):
     try:
         return float(row.get(name, ''))
@@ -294,9 +302,16 @@ def main():
             original.update(status=decision['status'],review_note=decision.get('review_note',''))
             if decision['status']=='rejected':ledger['keep_overrides'][identity]={'reason':'Rejected in review gallery'}
             else:ledger['keep_overrides'].pop(identity,None)
+        source_lookup={key(row):row for dataset in args.datasets for row in read_table(args.source_root/dataset/'measurements.txt')[2]}
         known={r['review_id']:r for r in ledger['review_candidates']}
         for decision in incoming.get('review_candidates',[]):
             original=known.get(decision.get('review_id'))
+            if original is None and decision.get('origin')=='manual':
+                row=source_lookup.get(decision.get('identity'))
+                if row is None:raise ValueError('Manual flip observation is missing')
+                original=manual_flip(row,decision.get('model'))
+                if decision.get('review_id')!=original['review_id']:raise ValueError('Invalid manual flip identity')
+                ledger['review_candidates'].append(original);known[original['review_id']]=original
             if original is None:raise ValueError('Unknown review hypothesis')
             if decision.get('source_fingerprint')!=original.get('source_fingerprint') or decision.get('partner_fingerprint')!=original.get('partner_fingerprint'):
                 raise ValueError('Review hypothesis source changed')

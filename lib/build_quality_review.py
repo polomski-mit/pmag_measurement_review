@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from measurement_transformations import ROOT, DEFAULT_SOURCES, DEFAULT_RULES, read_table, key, scan_rows
+from measurement_transformations import ROOT, DEFAULT_SOURCES, DEFAULT_RULES, read_table, key, scan_rows, fingerprint
 
 TEMPLATES=Path(__file__).resolve().parent/'templates'
 
@@ -23,7 +23,7 @@ def payload_for(ledger, sources):
     for name,rows in sources.items():
         by_spec=defaultdict(list)
         for original in rows:
-            row={**original,'_review_identity':key(original)}
+            row={**original,'_review_identity':key(original),'_source_fingerprint':fingerprint(original)}
             by_spec[row['specimen']].append(row)
             merged[row['specimen']][key(row)]=row
             provenance[key(row)].append(name)
