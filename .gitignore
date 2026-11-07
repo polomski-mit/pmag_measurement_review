@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+review_work/
+*.reviewed.json
+review.bundle.json
+transformations.json
