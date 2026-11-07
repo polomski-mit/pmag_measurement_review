@@ -46,10 +46,21 @@ Use the **Dark mode / Light mode** button to change the interface and plot
 palette. The viewer remembers your choice locally and initially follows your
 system preference.
 
-Warnings use red for high CSD or moment ≤0.1% of reference, orange for
-moderate scatter or other low-moment proposals, purple for orientation/identity
-hypotheses, and blue for existing source flags. Each reason has a text label;
+Warnings use red for high CSD, orange for moderate scatter, magenta for
+low-moment proposals, purple for orientation/identity hypotheses, and blue
+for existing source flags. Low-moment evidence includes its log₁₀ drop;
+≤0.1% of reference is labeled very low. Each reason has a text label;
 colors describe review priority, not error probability or acceptance status.
+
+Plots default to **After confirmed review**: approved exclusions and outgoing
+swap observations remain faded red with disconnected trajectories. Confirmed
+flips and incoming swap observations appear teal; faint original flip vectors
+remain visible. Rejected proposals retain the original observation, and pending
+proposals do not change the series. A teal preview for the current pending
+flip/swap is only a hypothesis. Switch to **Before review** to compare recorded
+data. All four plots update after confirmation or loading saved decisions;
+these are browser previews, not writes to your input tables. Conflicting
+approved actions are withheld from affected observations and shown as a warning.
 
 ## Input and screening rules
 

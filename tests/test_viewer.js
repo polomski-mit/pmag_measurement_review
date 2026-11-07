@@ -43,6 +43,14 @@ assert.equal(element('counter').textContent,'1 / 4');
 for(const [choice,status] of [['y','APPROVED'],['n','REJECTED'],['u','PENDING']]){
  key(choice);key('Enter');assert.equal(element('counter').textContent,'2 / 4');
  key('ArrowLeft');assert.equal(element('decision').textContent,status);
+ const screened=vm.runInContext("screenedRows('DEMO-01')",context);
+ assert.equal(!!screened[1]._screened_out,status==='APPROVED');
+ if(status==='APPROVED'){
+  element('plot-view').value='raw';element('plot-view').onchange();
+  assert.equal(vm.runInContext("screenedRows('DEMO-01')[1]._screened_out",context),undefined);
+  element('plot-view').value='screened';element('plot-view').onchange();
+ }
+
  assert.match(element('cache-state').textContent,/Autosaved/);
  const stored=JSON.parse([...cache.entries()].find(([key])=>key.startsWith('measurement-review:'))[1]);
  assert.equal(stored.ledger.exclusions['DEMO-01|2000-01-01T12:01:00'].status,status.toLowerCase());
@@ -70,10 +78,27 @@ key('ArrowRight');key('ArrowRight');key('ArrowRight');
 key('u');key('Enter');assert.equal(element('counter').textContent,'4 / 4');
 assert.match(element('cache-state').textContent,/End of review list/);
 element('theme').onclick();assert.equal(document.documentElement.dataset.theme,'light');
-for(const [ratio,level] of [[0.001,'red'],[0.00101,'orange'],[0.01,'orange']]){
+for(const [ratio,level] of [[0.001,'magenta'],[0.00101,'magenta'],[0.01,'magenta']]){
  const warning=vm.runInContext(`reviewWarnings({reasons:['low_moment'],evidence:{low_moment:{ratio:${ratio}}}},'exclusion',{})[0]`,context);
  assert.equal(warning.level,level);
 }
 assert.equal(vm.runInContext("reviewWarnings({reasons:['existing_bad_flag']},'exclusion',{})[0].level",context),'blue');
+// Accepted flips rotate only direction; swaps replace membership for both specimens.
+vm.runInContext(`ledger.review_candidates.find(e=>e.type==='possible_flip').status='approved'`,context);
+let corrected=vm.runInContext("screenedRows('DEMO-02')[1]",context);
+assert.equal(corrected.dir_dec,75);assert.equal(corrected.dir_inc,35);
+vm.runInContext("drawReviewPlots(document.getElementById('plots'),screenedRows('DEMO-02'),screenedRows('DEMO-02')[1],null,{kelvinOffset:273.15})",context);
+assert.equal(corrected._original.dir_dec,'285');assert.equal(corrected.magn_moment,'1e-08');
+vm.runInContext(`ledger.review_candidates.find(e=>e.type==='possible_swap').status='approved'`,context);
+const swapped=vm.runInContext("screenedRows('SWAP-01')",context);
+assert.equal(swapped.filter(r=>r._screened_out).length,1);
+assert.equal(swapped.find(r=>r._screened_changed).dir_dec,'10');
+assert.equal(vm.runInContext("screenedRows('SWAP-02').find(r=>r._screened_changed).dir_dec",context),'100');
+const runs=vm.runInContext("plotRuns([{x:1},{x:2,_screened_out:true},{x:3},{x:4}],r=>[r.x,0])",context);
+assert.equal(runs.length,2);assert.equal(runs[0].length,1);assert.equal(runs[1].length,2);
+// No preview correction is applied where approved actions conflict.
+vm.runInContext(`ledger.exclusions['SWAP-01|2000-01-01T12:10:00']={status:'approved'}`,context);
+assert.equal(vm.runInContext("screenedRows('SWAP-02').some(r=>r._screened_changed)",context),false);
+assert.match(element('plot-state').textContent,/Conflicting/);
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
