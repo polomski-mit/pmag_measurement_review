@@ -141,4 +141,4 @@ Click **Preview loading flip** in the current measurement’s decision pane. The
 
 The purple theme preserves scientific warning/projection colors. The warning-color guide is in the top menu; temperature/case navigation sticks directly below the menu as you scroll.
 
-The loading controls distinguish **Up ↔ down · same front (+X fixed)** from **Up ↔ down · front reversed (+Y fixed)**. The first matches turning the marked top to the bottom while retaining the same front when the physical front is specimen +X. X maps D→−D, I→−I; Y maps D→180°−D, I→−I. Both preserve moment. Verify the mount’s specimen axes: the instrument’s Up/Down declaration alone does not establish which axis was used.
+The standard **RAPID Up ↔ Down correction (X)** is now verified against the original Visual Basic acquisition code. The Y alternative is a different turnover. See [the source evidence and limits](docs/loading-conventions.md). Correctly declared Down measurements are already corrected; do not apply the correction twice.
