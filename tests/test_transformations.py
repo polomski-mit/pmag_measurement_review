@@ -36,6 +36,37 @@ class TransformTests(unittest.TestCase):
         findings=scan_rows(rows,empty_ledger(),DEFAULT_RULES)
         self.assertFalse(any(f['type']=='low_moment' for f in findings))
 
+    def test_moderate_isolated_dip_and_decision_preservation(self):
+        rows=[row('A-1',773,second=0),row('A-1',778,moment=1e-9,second=1),row('A-1',783,second=2)]
+        rules=dict(DEFAULT_RULES);rules.pop('bracket_low_moment_ratio') # old saved settings
+        ledger=empty_ledger();scan_rows(rows,ledger,rules)
+        entry=ledger['exclusions'][key(rows[1])]
+        self.assertEqual(entry['evidence']['low_moment']['threshold_ratio'],.1)
+        entry['status']='approved';scan_rows(rows,ledger,rules)
+        self.assertEqual(entry['status'],'approved')
+        entry['status']='rejected';ledger['keep_overrides'][key(rows[1])]={}
+        scan_rows(rows,ledger,rules)
+        self.assertEqual(entry['status'],'rejected')
+        rows[1]['magn_moment']='1.01e-9'
+        self.assertFalse(any(f['type']=='low_moment' for f in scan_rows(rows,empty_ledger(),rules)))
+        # A 10x interpolation dip is insufficient if it isn't 10x below each side.
+        rows[1]['magn_moment']='9e-10';rows[2]['magn_moment']='5e-9'
+        self.assertFalse(any(f['type']=='low_moment' for f in scan_rows(rows,empty_ledger(),rules)))
+        self.assertFalse(any(f['type']=='low_moment' for f in scan_rows(rows[:2],empty_ledger(),rules)))
+        # Same-temperature repeats retain their stricter 100x threshold.
+        rows[2]['treat_temp']='778';rows[2]['magn_moment']='1e-8'
+        self.assertFalse(any(f['type']=='low_moment' for f in scan_rows(rows,empty_ledger(),rules)))
+
+    def test_repeat_does_not_hide_bracket_dip(self):
+        rows=[row('A-1',923,moment=4.96e-9,second=0),
+              row('A-1',928,moment=6.15e-11,csd=7,second=1),
+              row('A-1',928,moment=5.64e-9,second=2),
+              row('A-1',933,moment=5.41e-9,second=3)]
+        ledger=empty_ledger();scan_rows(rows,ledger,DEFAULT_RULES)
+        evidence=ledger['exclusions'][key(rows[1])]['evidence']['low_moment']
+        self.assertEqual(evidence['support'],'bracketing_temperatures')
+        self.assertAlmostEqual(evidence['threshold_ratio'],.1)
+
     def test_reciprocal_swap(self):
         rows=[row('A-1',773,second=0),row('A-1',778,dec=100,second=1),row('A-1',783,second=2),
               row('A-2',773,dec=100,second=3),row('A-2',778,second=4),row('A-2',783,dec=100,second=5)]

@@ -21,7 +21,7 @@ from direction_geometry import angle, transform
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCES = []
-DEFAULT_RULES = dict(low_moment_ratio=.01, temperature_window_K=25,
+DEFAULT_RULES = dict(low_moment_ratio=.01, bracket_low_moment_ratio=.1, temperature_window_K=25,
                      kelvin_offset=273.15,
                      reference_moment_factor=3, high_csd_degrees=10, review_csd_degrees=4,
                      flip_min_improvement_degrees=30, flip_max_residual_degrees=20,
@@ -154,6 +154,16 @@ def scan_rows(rows, ledger, rules):
         refs, support = local_references(row, by_specimen[row['specimen']], excluded, rules)
         if not refs:
             continue
+        # A repeat just above the strict repeat cutoff must not hide a supported dip.
+        if support == 'same_temperature_repeat':
+            repeat_moments = [number(other,'magn_moment') for other in refs]
+            if (max(repeat_moments)/min(repeat_moments) > rules['reference_moment_factor']
+                    or moment > statistics.median(repeat_moments)*rules['low_moment_ratio']):
+                bracket, bracket_support = local_references(row,
+                    [other for other in by_specimen[row['specimen']]
+                     if number(other,'treat_temp') != number(row,'treat_temp')], excluded, rules)
+                if bracket:
+                    refs, support = bracket, bracket_support
         moments = [number(other,'magn_moment') for other in refs]
         # Reject a baseline straddling a steep natural intensity transition.
         if max(moments)/min(moments) > rules['reference_moment_factor']:
@@ -167,9 +177,15 @@ def scan_rows(rows, ledger, rules):
             baseline = math.exp(math.log(ml)+(t-lo)/(hi-lo)*(math.log(mh)-math.log(ml)))
         else:
             baseline = statistics.median(moments)
-        if moment/baseline <= rules['low_moment_ratio']:
+        threshold = rules['low_moment_ratio']
+        if support == 'bracketing_temperatures':
+            threshold = rules.get('bracket_low_moment_ratio', .1)
+            # Require the dip to be low relative to BOTH sides, not just interpolation.
+            if moment > min(ml, mh)*threshold:
+                continue
+        if moment <= baseline*threshold or math.isclose(moment, baseline*threshold, rel_tol=1e-12, abs_tol=0):
             exclude(row,'low_moment',dict(moment_Am2=moment, reference_moment_Am2=baseline,
-                    ratio=moment/baseline, support=support, references=[key(other) for other in refs]))
+                    ratio=moment/baseline, threshold_ratio=threshold, support=support, references=[key(other) for other in refs]))
     excluded = set(exclusions)-keeps
     # Excluded weak/noisy readings must not drive flip or swap hypotheses.
     clean = [row for row in rows if good(row, excluded, rules)]
