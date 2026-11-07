@@ -48,6 +48,26 @@ class RepeatTests(unittest.TestCase):
             overlap=apply_to_dataset(source,source/'out',ledger,DEFAULT_RULES,catalog)
             self.assertEqual([key(r) for r in overlap[2]],[key(rows[2])])
 
+    def test_all_bad_is_resolved_and_removes_every_repeat(self):
+        rows=[row(0),row(1),row(2,778)]
+        group=next(iter(repeat_groups(rows).values()))
+        choice={**group,'selected_identity':None,'all_bad':True}
+        self.assertTrue(valid_selection(group,choice))
+        self.assertFalse(valid_selection(group,{**choice,'selected_identity':key(rows[0])}))
+        self.assertFalse(valid_selection(group,{**choice,'identities':group['identities'][:1]}))
+        changed=next(iter(repeat_groups(rows+[row(3)]).values()))
+        self.assertFalse(valid_selection(changed,choice))
+        ledger=empty_ledger();ledger['repeat_selections']=validate_selections({group['group_id']:group},{group['group_id']:choice},{})
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)
+            with (source/'measurements.txt').open('w') as stream:
+                stream.write('tab\tmeasurements\n');writer=csv.DictWriter(stream,fieldnames=list(rows[0]),delimiter='\t');writer.writeheader();writer.writerows(rows)
+            applied=apply_to_dataset(source,source/'out',ledger,DEFAULT_RULES)
+            self.assertEqual([key(r) for r in applied[2]],[key(rows[2])])
+            self.assertEqual(len(applied[3]),2)
+            self.assertEqual(applied[-1][0]['action'],'repeat_all_bad')
+            self.assertNotIn('repeat_selection_pending',[a['action'] for a in applied[-1]])
+
     def test_quality_exclusions_precede_repeat_selection(self):
         rows=[row(0),row(1),row(2)]
         ledger=empty_ledger()

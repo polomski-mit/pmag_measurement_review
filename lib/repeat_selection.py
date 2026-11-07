@@ -27,6 +27,8 @@ def repeat_groups(rows):
 
 def valid_selection(group, selection, exclusions=None):
     if not isinstance(selection,dict) or selection.get('signature')!=group['signature']:return False
+    if selection.get('all_bad') is True:
+        return selection.get('selected_identity') is None and sorted(selection.get('identities',[]))==sorted(group['identities'])
     chosen=selection.get('selected_identity')
     if chosen not in group['identities']:return False
     return (exclusions or {}).get(chosen,{}).get('status')!='approved'
@@ -39,7 +41,7 @@ def validate_selections(groups, incoming, exclusions):
         group=groups.get(group_id)
         if not group or not valid_selection(group,selection,exclusions):
             raise ValueError('Repeat selection changed, is excluded, or is unknown; review again: '+group_id)
-        result[group_id]={**group,'selected_identity':selection['selected_identity']}
+        result[group_id]={**group,'selected_identity':selection['selected_identity'],**({'all_bad':True} if selection.get('all_bad') is True else {})}
     return result
 
 

@@ -229,7 +229,7 @@ def apply_to_dataset(source, output, ledger, rules, repeat_catalog=None):
     available={key(row):row for row in retained}
     touched=set()
     actions=[dict(action='repeat_selection_pending',group_id=g) for g in unresolved]
-    actions += [dict(action='repeat_selection',group_id=g,selected_identity=ledger['repeat_selections'][g]['selected_identity']) for g in groups if g not in unresolved and valid_selection(groups[g],ledger.get('repeat_selections',{}).get(g),ledger['exclusions'])]
+    actions += [dict(action='repeat_all_bad' if ledger['repeat_selections'][g].get('all_bad') else 'repeat_selection',group_id=g,selected_identity=ledger['repeat_selections'][g]['selected_identity'],source_identities=groups[g]['identities']) for g in groups if g not in unresolved and valid_selection(groups[g],ledger.get('repeat_selections',{}).get(g),ledger['exclusions'])]
     for decision in ledger.get('review_candidates',[]):
         if decision.get('status')!='approved':continue
         identities=[decision['identity']]

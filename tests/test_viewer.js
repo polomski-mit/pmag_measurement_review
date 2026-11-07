@@ -137,6 +137,11 @@ assert.equal(vm.runInContext("plotRuns([{treat_temp:600},{treat_temp:650},{treat
 for(const axis of ['x','y'])for(const full of [true,false]){
  vm.runInContext(`drawReviewPlots(document.getElementById('plots'),screenedRows('DEMO-01'),screenedRows('DEMO-01')[1],null,{kelvinOffset:273.15,axis:'${axis}',full:${full}})`,context);
 }
+// Cardinal directions match PmagPy Demag: East/Down downward, rotation about Z.
+for(const [dec,inc,rotation,expectedH,expectedV] of [[0,0,0,[1,0],[1,0]],[90,0,0,[0,-1],[0,0]],[0,90,0,[0,0],[0,-1]],[0,-90,0,[0,0],[0,1]],[90,0,90,[1,0],[1,0]],[0,0,90,[0,1],[0,0]]]){
+ const v=vm.runInContext(`zijderveldProjection({dir_dec:${dec},dir_inc:${inc},magn_moment:2},${rotation},2)`,context);
+ for(const [actual,expected] of [[v.horizontal,expectedH],[v.vertical,expectedV]])actual.forEach((n,i)=>assert.ok(Math.abs(n-expected[i])<1e-12));
+}
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');
 (async()=>{
@@ -166,7 +171,7 @@ console.log('Repeat picker passed: explicit selection, cancel/confirm, zoom, sam
 
 // Every repeat has clickable, separately numbered callouts, even when coincident.
 const repeatCanvas=element('plots');
-repeatCanvas.getBoundingClientRect=()=>({left:10,top:20,width:450,height:490});
+repeatCanvas.getBoundingClientRect=()=>({left:10,top:20,width:450,height:parseFloat(repeatCanvas.style.height)/2});
 const labelHits=repeatCanvas._repeatHitTargets.filter(h=>h.kind==='label');
 assert.equal(new Set(labelHits.map(h=>h.identity)).size,2);
 assert.equal(labelHits.length,10); // moment, CSD, directions, H and V for each
@@ -180,7 +185,7 @@ repeatCanvas.onclick({clientX:10+(firstLabel.x+18)/2,clientY:20+(firstLabel.y+9)
 assert.equal(element('repeat-member').value,firstIdentity);
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
 const buttons=element('repeat-options').children;
-assert.equal(buttons.length,3);
+assert.equal(buttons.length,4);
 assert.equal(buttons[0].textContent.includes('SELECTED'),true);
 buttons[1].onclick();
 assert.equal(element('repeat-member').value,savedWinner);
@@ -188,6 +193,28 @@ console.log('Repeat plots passed: all candidates shown, overlap handling, scaled
 
 buttons[2].onclick();assert.equal(element('confirm-dialog').open,true);key('Escape');
 assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),savedWinner);
+
+// Rejecting every repeat is explicit, reversible, and screens out all candidates.
+element('repeat-all-bad').onclick();assert.match(element('confirm-message').textContent,/ALL 2/);key('Escape');
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].all_bad",context),undefined);
+element('repeat-all-bad').onclick();key('Enter');
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].all_bad",context),true);
+assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].selected_identity",context),null);
+assert.equal(vm.runInContext("repeatGroups().filter(g=>!repeatResolved(g)).length",context),0);
+assert.equal(vm.runInContext("screenedRows('DEMO-01').filter(r=>initial.repeat_groups['repeat-test'].identities.includes(rowIdentity(r))).every(r=>r._screened_out)",context),true);
+element('repeat-choose').onclick();key('Enter');assert.equal(vm.runInContext("ledger.repeat_selections['repeat-test'].all_bad",context),undefined);
+// Agreeing reliable neighbors support an all-candidates warning; no extrapolation.
+vm.runInContext(`{
+ const r={specimen:'CHECK',dir_dec:'0',dir_inc:'30',dir_csd:'1',magn_moment:'1e-8',quality:'g',timestamp:'test'};
+ const neighbors=[{...r,treat_temp:768},{...r,treat_temp:778}];
+ const group={specimen:'CHECK',treat_temp:773};
+ globalThis.allBadConcern=repeatConcern(group,[{...r,dir_dec:'180',dir_inc:'-30'},{...r,magn_moment:'1e-11'}],neighbors);
+ globalThis.oneGoodConcern=repeatConcern(group,[r,{...r,magn_moment:'1e-11'}],neighbors);
+ globalThis.missingConcern=repeatConcern(group,[{...r,dir_csd:'15'}],neighbors.slice(0,1));
+ globalThis.noisyConcern=repeatConcern(group,[{...r,dir_csd:'15'}],neighbors.map(n=>({...n,dir_csd:'5'})));
+}`,context);
+assert.equal(vm.runInContext('allBadConcern.reasons.length',context),2);
+assert.equal(vm.runInContext('oneGoodConcern',context),null);assert.equal(vm.runInContext('missingConcern',context),null);assert.equal(vm.runInContext('noisyConcern',context),null);
 
 // Returning to quality review hides repeat UI; handoff removes approved bad rows.
 element('back-quality').onclick();

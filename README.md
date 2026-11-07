@@ -61,8 +61,7 @@ flip/swap is only a hypothesis. Switch to **Before review** to compare recorded
 data. Trajectories follow treatment temperature (repeats by time), with gaps at
 excluded treatments even across repeats. Exclusions use faded red crosses.
 The enlarged Zijderveld panel uses filled horizontal circles and open vertical
-squares, colored from cool to hot treatment. Choose X–Y / X–(−Z) or Y–X /
-Y–(−Z), and full trajectory or nearby context. Axes are specimen coordinates,
+squares: horizontal red, vertical blue, following PmagPy Demag. Choose the specimen X (N–S convention), Y (E–W convention), or first-retained-declination view, and full trajectory or nearby context. Axes are specimen coordinates,
 not geographic north/east. All four plots update after confirmation or loading saved decisions;
 these are browser previews, not writes to your input tables. Conflicting
 approved actions are withheld from affected observations and shown as a warning.
@@ -120,10 +119,16 @@ Run `python3 -m unittest discover -s tests` for the packaged checks. See
 
 First finish the bad-measurement review. At the end of the list (or **Finish bad-measurement review…**), choose whether to apply your decisions and enter the separate repeat-review screen. Approved exclusions are removed and approved corrections are incorporated before comparing repeats. A temperature with one surviving observation needs no choice. Undecided proposals remain unchanged, and the handoff prompt reports their count.
 
-Every specimen/temperature with multiple surviving observations requires an explicit retained measurement. Use **Repeated temperature**, inspect the timestamp/CSD/moment choices, and confirm **Keep this one** with Enter (Esc cancels). During comparison, every repeat is shown together with a distinct color and number across all plots. Click a point, numbered callout, or candidate button to select it, then confirm separately. Coincident points have separate callouts; clicking an ambiguous overlap never chooses silently. Outside comparison, other repeats remain visible as excluded in the screened plot and remain intact in raw sources. New members or changed source vectors invalidate the previous choice. Existing approved exclusions cannot be chosen as winners.
+Every specimen/temperature with multiple surviving observations requires an explicit retained measurement or an all-bad decision. Use **Repeated temperature**, inspect the timestamp/CSD/moment choices, and confirm **Keep this one** with Enter (Esc cancels). During comparison, every repeat is shown together with a distinct color and number across all plots. Click a point, numbered callout, or candidate button to select it, then confirm separately. Coincident points have separate callouts; clicking an ambiguous overlap never chooses silently. Outside comparison, other repeats remain visible as excluded in the screened plot and remain intact in raw sources. New members or changed source vectors invalidate the previous choice. Existing approved exclusions cannot be chosen as winners.
 
-Select **Plot range → Zoom · closest temperature steps** to show the current temperature plus the nearest two levels on each side, including every repeat. Moment and CSD axes zoom too, and vector normalization uses this window.
+Select **Plot range → Zoom · closest temperature steps** to show the current temperature plus the nearest two levels on each side, including every repeat. Moment and CSD axes zoom too, while vector normalization stays fixed at the first retained observation’s moment (M₀).
 
 In the standalone offline viewer, applying updates the review preview; export the decision JSON and import it with the CLI to write derived tables. The private local helper also applies decisions to its reviewed MagIC outputs at the handoff.
 
-Applying transformations withholds unresolved repeat groups entirely from derived inputs and records `pending_repeat_groups` and `fit_ready` in the audit. Resolve every group (or approve all members’ exclusions if all are bad) before fitting. Decision JSON can still be saved as a progress backup. Reload/recalculate PCA fits against reviewed inputs; this tool does not rewrite existing fit results.
+Applying transformations withholds unresolved repeat groups entirely from derived inputs and records `pending_repeat_groups` and `fit_ready` in the audit. Resolve every group (or confirm **No good measurements — flag all as bad**) before fitting. Decision JSON can still be saved as a progress backup. Reload/recalculate PCA fits against reviewed inputs; this tool does not rewrite existing fit results.
+
+**No good measurements — flag all as bad** saves an explicit, signature-checked repeat decision. Enter confirms; Esc cancels. Every surviving observation in that group is removed from derived fitting inputs, with a `repeat_all_bad` audit entry. Raw observations remain intact. You can revisit the group and retain a measurement instead; new/changed source members require review again.
+
+The all-bad option is emphasized when every candidate has high scatter (>4° CSD), a direction ≥30° from both reliable bracketing levels, or a moment ≥100× weaker/stronger than both. Brackets must be within 25°C, have CSD ≤4°, and agree within 20°; moment comparisons additionally require reference moments within a factor of 10. No bracketing evidence means no automatic emphasis. Bullet points explain each candidate; this heuristic never makes a decision for you.
+
+Zijderveld geometry follows PmagPy Demag: East/Y and Down/Z plot downward in the X view; the Y view rotates declination by 90°. Specimen axes are labeled explicitly, without assuming geographic orientation. The frame includes the origin and fits displayed components at equal scales. Pink halos identify the selected measurement independently of projection colors.
