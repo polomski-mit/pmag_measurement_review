@@ -12,7 +12,7 @@ function element(id){if(!elements.has(id))elements.set(id,{
   replaceChildren(...children){this.children=children},setAttribute(){},
   getContext(){return canvas},click(){},closest(){return null},showModal(){this.open=true},close(){this.open=false}
 });return elements.get(id)}
-const document={getElementById:element,createElement:()=>element(Symbol()),addEventListener:(name,fn)=>handlers[name]=fn};
+const document={documentElement:{dataset:{}},getElementById:element,createElement:()=>element(Symbol()),addEventListener:(name,fn)=>handlers[name]=fn};
 const sandbox={document,window:{devicePixelRatio:1,addEventListener(){}},structuredClone,
   localStorage:{getItem:key=>cache.get(key),setItem:(key,value)=>cache.set(key,value)},
   Blob,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},setTimeout:fn=>fn(),alert:msg=>alerts.push(msg)};
@@ -20,6 +20,11 @@ const context=vm.createContext(sandbox);
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 for(const match of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))vm.runInContext(match[1],context);
 assert.equal(element('counter').textContent,'0 / 0');
+assert.equal(document.documentElement.dataset.theme,'light');
+element('theme').onclick();assert.equal(document.documentElement.dataset.theme,'dark');
+assert.equal(cache.get('measurement-review-theme'),'dark');
+assert.equal(element('theme').textContent,'Light mode');
+
 element('demo').onclick();
 assert.equal(element('counter').textContent,'1 / 4');
 assert.equal(element('reasons').children.length,2);
@@ -38,7 +43,7 @@ for(const [choice,status] of [['y','APPROVED'],['n','REJECTED'],['u','PENDING']]
  key(choice);key('Enter');assert.equal(element('counter').textContent,'2 / 4');
  key('ArrowLeft');assert.equal(element('decision').textContent,status);
  assert.match(element('cache-state').textContent,/Autosaved/);
- const stored=JSON.parse([...cache.values()][0]);
+ const stored=JSON.parse([...cache.entries()].find(([key])=>key.startsWith('measurement-review:'))[1]);
  assert.equal(stored.ledger.exclusions['DEMO-01|2000-01-01T12:01:00'].status,status.toLowerCase());
 }
 key('ArrowRight');assert.equal(element('csd-warning').hidden,true);
@@ -61,5 +66,6 @@ element('demo').onclick();assert.match(element('totals').textContent,/1 approved
 key('ArrowRight');key('ArrowRight');key('ArrowRight');
 key('u');key('Enter');assert.equal(element('counter').textContent,'4 / 4');
 assert.match(element('cache-state').textContent,/End of review list/);
+element('theme').onclick();assert.equal(document.documentElement.dataset.theme,'light');
 assert.equal(alerts.length,0);
 console.log('Viewer passed: bullet reasons, CSD warnings, plots, navigation, decisions, notes, export, validation.');

@@ -42,6 +42,10 @@ scientific values at the same identity require review again. New findings remain
 pending. Rejecting an exclusion records a keep override. Conflicting approved
 transformations stop application rather than choosing one silently.
 
+Use the **Dark mode / Light mode** button to change the interface and plot
+palette. The viewer remembers your choice locally and initially follows your
+system preference.
+
 ## Input and screening rules
 
 Input is a MagIC 3 `measurements.txt`, starting `tab<TAB>measurements`, with
